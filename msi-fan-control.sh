@@ -136,8 +136,16 @@ monitor() {
     echo -e "${GREEN}Iniciando monitoreo continuo (Ctrl+C para salir)...${NC}"
     echo
     
+    # Ocultar el cursor para evitar parpadeo
+    tput civis
+    
+    # Trap para restaurar el cursor al salir
+    trap 'tput cnorm; exit' INT TERM EXIT
+    
     while true; do
-        clear
+        # Mover cursor a la posición inicial (línea 3) y limpiar desde ahí hacia abajo
+        tput cup 2 0
+        tput ed
         show_status
         sleep 2
     done
