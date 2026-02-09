@@ -1,0 +1,18 @@
+[Unit]
+Description=Load custom MSI-EC module for fan control
+After=multi-user.target
+Before=graphical.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Remover módulo del kernel si está cargado
+ExecStartPre=-/sbin/modprobe -r msi-ec
+ExecStartPre=-/sbin/rmmod msi_ec
+# Cargar módulo personalizado
+ExecStart=/sbin/insmod /home/manusoftar/Git/msi-ec/msi-ec.ko
+# Descargar módulo al apagar
+ExecStop=/sbin/rmmod msi_ec
+
+[Install]
+WantedBy=multi-user.target

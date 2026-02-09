@@ -1,0 +1,20 @@
+[Unit]
+Description=MSI Fan Control Daemon - Automatic fan management
+After=msi-ec-custom.service
+Requires=msi-ec-custom.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/msi-fan-daemon
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Configuración de recursos
+Nice=-10
+IOSchedulingClass=realtime
+IOSchedulingPriority=0
+
+[Install]
+WantedBy=multi-user.target
