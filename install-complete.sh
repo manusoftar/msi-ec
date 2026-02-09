@@ -36,6 +36,16 @@ check_dependencies() {
         missing_deps+=("linux-headers-$kernel_version")
     fi
     
+    # Check kernel version (minimum 6.5.0)
+    local kernel_major=$(echo "$kernel_version" | cut -d. -f1)
+    local kernel_minor=$(echo "$kernel_version" | cut -d. -f2)
+    if [ "$kernel_major" -lt 6 ] || ([ "$kernel_major" -eq 6 ] && [ "$kernel_minor" -lt 5 ]); then
+        echo -e "${RED}ERROR: Kernel version $kernel_version is not supported${NC}"
+        echo "Minimum required kernel version: 6.5.0"
+        echo "Please upgrade your kernel before proceeding."
+        return 1
+    fi
+    
     if [ ${#missing_deps[@]} -ne 0 ]; then
         echo -e "${RED}ERROR: Missing required build dependencies:${NC}"
         for dep in "${missing_deps[@]}"; do
@@ -62,12 +72,11 @@ if [ ! -f "$MODULE_PATH" ]; then
     fi
     
     echo "Compilando módulo del kernel..."
-    if ! make -C "$SCRIPT_DIR" modules 2>&1; then
+    if ! make -C "$SCRIPT_DIR" modules; then
         echo -e "${RED}ERROR: Falló la compilación del módulo${NC}"
         echo "Verifica que:"
         echo "  1. Los archivos fuente (msi-ec.c) existan en el directorio"
         echo "  2. Las dependencias estén correctamente instaladas"
-        echo "  3. Tu kernel sea compatible (versión mínima 6.5.0)"
         exit 1
     fi
     
