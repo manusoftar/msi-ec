@@ -17,12 +17,79 @@ echo "  Vector GP68HX 12VH - Con daemon automático"
 echo "═══════════════════════════════════════════════════════════"
 echo
 
-# 1. Verificar módulo compilado
-if [ ! -f ~/Git/msi-ec/msi-ec.ko ]; then
-    echo -e "${RED}ERROR: No se encuentra ~/Git/msi-ec/msi-ec.ko${NC}"
-    exit 1
+# Get the directory where the script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MODULE_PATH="$SCRIPT_DIR/msi-ec.ko"
+
+# Function to check if required dependencies are installed
+check_dependencies() {
+    local missing_deps=()
+    
+    # Check for make
+    if ! command -v make &> /dev/null; then
+        missing_deps+=("build-essential or make")
+    fi
+    
+    # Check for kernel headers
+    local kernel_version=$(uname -r)
+    if [ ! -d "/lib/modules/$kernel_version/build" ]; then
+        missing_deps+=("linux-headers-$kernel_version")
+    fi
+    
+    # Check kernel version (minimum 6.5.0)
+    local kernel_major=$(echo "$kernel_version" | cut -d. -f1)
+    local kernel_minor=$(echo "$kernel_version" | cut -d. -f2)
+    if [ "$kernel_major" -lt 6 ] || ([ "$kernel_major" -eq 6 ] && [ "$kernel_minor" -lt 5 ]); then
+        echo -e "${RED}ERROR: Kernel version $kernel_version is not supported${NC}"
+        echo "Minimum required kernel version: 6.5.0"
+        echo "Please upgrade your kernel before proceeding."
+        return 1
+    fi
+    
+    if [ ${#missing_deps[@]} -ne 0 ]; then
+        echo -e "${RED}ERROR: Missing required build dependencies:${NC}"
+        for dep in "${missing_deps[@]}"; do
+            echo -e "  ${RED}✗ $dep${NC}"
+        done
+        echo
+        echo "Please install the required packages:"
+        echo "  For Debian/Ubuntu: sudo apt install build-essential linux-headers-\$(uname -r)"
+        echo "  For Fedora: sudo dnf install kernel-devel"
+        echo "  For Arch: sudo pacman -S base-devel linux-headers"
+        return 1
+    fi
+    return 0
+}
+
+# 1. Check if module exists, compile if needed
+if [ ! -f "$MODULE_PATH" ]; then
+    echo "Módulo msi-ec.ko no encontrado, compilando..."
+    echo
+    
+    # Check dependencies before attempting compilation
+    if ! check_dependencies; then
+        exit 1
+    fi
+    
+    echo "Compilando módulo del kernel..."
+    if ! make -C "$SCRIPT_DIR" modules; then
+        echo -e "${RED}ERROR: Falló la compilación del módulo${NC}"
+        echo "Verifica que:"
+        echo "  1. Los archivos fuente (msi-ec.c) existan en el directorio"
+        echo "  2. Las dependencias estén correctamente instaladas"
+        exit 1
+    fi
+    
+    # Verify compilation succeeded
+    if [ ! -f "$MODULE_PATH" ]; then
+        echo -e "${RED}ERROR: La compilación no generó el archivo msi-ec.ko${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}✓ Módulo compilado exitosamente${NC}"
+else
+    echo -e "${GREEN}✓ Módulo compilado encontrado${NC}"
 fi
-echo -e "${GREEN}✓ Módulo compilado encontrado${NC}"
 
 # 2. Blacklistear módulo del kernel
 echo
@@ -60,7 +127,7 @@ echo
 echo "Paso 5: Cargando módulo personalizado..."
 sudo modprobe -r msi-ec 2>/dev/null || true
 sudo rmmod msi_ec 2>/dev/null || true
-sudo insmod ~/Git/msi-ec/msi-ec.ko
+sudo insmod "$MODULE_PATH"
 
 if ! lsmod | grep -q msi_ec; then
     echo -e "${RED}✗ Error al cargar módulo${NC}"
