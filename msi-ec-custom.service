@@ -6,11 +6,10 @@ Before=graphical.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-# Remover módulo del kernel si está cargado
-ExecStartPre=-/sbin/modprobe -r msi-ec
-ExecStartPre=-/sbin/rmmod msi_ec
-# Cargar módulo personalizado
-ExecStart=/sbin/insmod /home/manusoftar/Git/msi-ec/msi-ec.ko
+# Note: Module removal is now handled by the wrapper script (msi-ec-load.sh)
+# for better error handling and logging
+# Cargar módulo personalizado usando script con validación
+ExecStart=/home/manusoftar/Git/msi-ec/msi-ec-load.sh
 # Descargar módulo al apagar
 ExecStop=/sbin/rmmod msi_ec
 

@@ -14,5 +14,5 @@ if [ ! -d /sys/devices/platform/msi-ec ]; then
     exit 1
 fi
 
-# Ejecutar daemon original
-exec /usr/local/bin/msi-fan-daemon-original
+# Ejecutar daemon original con los argumentos recibidos
+exec /usr/local/bin/msi-fan-daemon-original "$@"

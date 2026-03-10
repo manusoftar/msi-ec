@@ -260,3 +260,38 @@ You can use `make load-debug` command to load the module in the debug mode after
 
 Set this parameter to a supported EC firmware version to use its configuration and test if it is compatible with your EC.
 **Please verify that the attributes return the correct data before attempting to write into them!**
+
+## Troubleshooting
+
+### Service Startup Issues
+
+If you're using the `msi-ec-custom.service` systemd service and it fails to start, check the status for specific error codes:
+
+```bash
+sudo systemctl status msi-ec-custom
+journalctl -u msi-ec-custom -n 50
+```
+
+The service wrapper script (`msi-ec-load.sh`) provides detailed error messages with the following exit codes:
+
+| Exit Code | Meaning | Solution |
+|-----------|---------|----------|
+| 0 | Success | Module loaded successfully |
+| 1 | Module file not found | Build the module first: Run `make` or `sudo make dkms-install` |
+| 2 | Module file not readable | Check file permissions: `ls -l /path/to/msi-ec.ko` |
+| 3 | Module load failed | Kernel compatibility issue - check `dmesg` for details |
+
+**Common Issues:**
+
+1. **Exit code 1 (Module not found)**: The kernel module hasn't been built yet. Follow the installation instructions above to build it.
+
+2. **Exit code 2 (Permission denied)**: The module file exists but can't be read. Check ownership and permissions of `msi-ec.ko`.
+
+3. **Exit code 3 (Kernel rejected module)**: The module was built but the kernel refused to load it. This usually indicates:
+   - Module was built for a different kernel version
+   - Secure Boot is enabled (requires signed modules)
+   - Kernel configuration incompatibility
+   
+   Check kernel logs: `sudo dmesg | tail -20`
+
+4. **Service shows "status=1/FAILURE"**: Check the journal output for specific error messages from the wrapper script.
